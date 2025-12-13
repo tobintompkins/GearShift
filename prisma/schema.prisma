@@ -1,0 +1,768 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String   @id @default(cuid())
+  username        String   @unique
+  password        String   // Hashed password
+  email           String?  @unique
+  name            String?
+  isActive        Boolean  @default(true)
+  resetToken      String?  // Password reset token
+  resetTokenExpiry DateTime? // Token expiration
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([username])
+  @@index([email])
+  @@index([resetToken])
+  @@map("users")
+}
+
+model Employee {
+  id        String   @id @default(cuid())
+  firstName String
+  lastName  String
+  email     String?
+  phone     String?
+  photo     String?  // URL or path to employee photo
+  skills    String?  // Comma-separated list of skills (e.g., "brakes, diagnostics, AC")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  jobs      Job[]
+  schedules Schedule[] // Employee availability/schedule blocks
+  tools     Tool[]   // Tools assigned to this employee
+  timeEntries TimeEntry[] // Time tracking entries
+  diagnosticJobs DiagnosticJob[] // Diagnostic jobs performed by this employee
+  inspections InspectionChecklist[] // Inspection checklists performed by this employee
+
+  @@map("employees")
+}
+
+model Schedule {
+  id          String   @id @default(cuid())
+  employeeId  String
+  employee    Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  dayOfWeek   Int      // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+  startTime   String   // e.g., "09:00"
+  endTime     String   // e.g., "17:00"
+  isAvailable Boolean  @default(true) // false = blocked/unavailable
+  notes       String?  // Reason for unavailability
+  date        DateTime? // Specific date (for one-time schedule changes)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([employeeId])
+  @@index([dayOfWeek])
+  @@index([date])
+  @@map("schedules")
+}
+
+model JobNote {
+  id          String   @id @default(cuid())
+  jobId       String
+  job         Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  content     String   // Note content
+  noteType    String   @default("general") // general, issue, solution, customer-request, internal
+  isInternal  Boolean  @default(false) // true = internal only, false = visible to customer
+  createdBy   String?  // Employee name or system
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([jobId])
+  @@index([noteType])
+  @@index([createdAt])
+  @@map("job_notes")
+}
+
+model Customer {
+  id        String    @id @default(cuid())
+  firstName String
+  lastName  String
+  phone     String
+  email     String?
+  address   String?
+  notes     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  vehicles  Vehicle[]
+  jobs      Job[]
+  quotes    Quote[]
+  invoices  Invoice[]
+  messages  CustomerMessage[]
+  maintenanceReminders MaintenanceReminder[]
+  diagnosticJobs DiagnosticJob[]
+
+  @@index([phone])
+  @@index([lastName, firstName])
+  @@map("customers")
+}
+
+model Vehicle {
+  id           String   @id @default(cuid())
+  make         String
+  model        String
+  year         String?
+  engine       String?  // Engine type/size (e.g., "3.5L V6", "2.0L Turbo")
+  mileage      Int?     // Current mileage in miles
+  licensePlate String?
+  vin          String?
+  color        String?
+  notes        String?
+  customerId   String
+  customer     Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  jobs         Job[]
+  quotes       Quote[]
+  invoices     Invoice[]
+  maintenanceHistory VehicleMaintenanceHistory[]
+  maintenanceReminders MaintenanceReminder[]
+  diagnosticJobs DiagnosticJob[]
+  torqueSpecs TorqueSpec[]
+  maintenanceIntervals MaintenanceInterval[]
+  inspections InspectionChecklist[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([customerId])
+  @@index([licensePlate])
+  @@index([vin])
+  @@map("vehicles")
+}
+
+model Job {
+  id                String    @id @default(cuid())
+  date              DateTime
+  startTime         String
+  endTime           String?
+  duration          Int?      // Duration in minutes
+  customerFirstName String    // Kept for backward compatibility
+  customerLastName  String    // Kept for backward compatibility
+  customerPhone     String    // Kept for backward compatibility
+  customerAddress   String    // Kept for backward compatibility
+  vehicleInfo       String    // Kept for backward compatibility
+  serviceType       String
+  status            String    @default("pending") // pending, in-progress, awaiting-parts, completed, cancelled
+  price             Float?    // Job price/revenue
+  urgent            Boolean   @default(false) // Mark job as urgent
+  urgentType        String?   // emergency, breakdown, no-start, safety-issue
+  customerId       String?
+  customer         Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  vehicleId        String?
+  vehicle          Vehicle?  @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
+  employeeId       String?
+  employee         Employee? @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+  serviceTypeId    String?   // Optional link to ServiceType
+  serviceTypeRef   ServiceType? @relation(fields: [serviceTypeId], references: [id], onDelete: SetNull)
+  quoteId          String?   // Optional link to Quote that became this job
+  quote            Quote?    @relation(fields: [quoteId], references: [id], onDelete: SetNull)
+  invoice          Invoice?  // One-to-one: Invoice created from this job
+  reminders        Reminder[]
+  jobNotes         JobNote[]
+  partOrders       PartOrder[]
+  messages         CustomerMessage[]
+  maintenanceHistory VehicleMaintenanceHistory[]
+  photos           JobPhoto[]
+  timeEntries      TimeEntry[] // Time tracking entries for this job
+  diagnosticJobs   DiagnosticJob[] // Diagnostic jobs related to this repair job
+  inspections      InspectionChecklist[] // Inspection checklists for this job
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([date])
+  @@index([status])
+  @@index([employeeId])
+  @@index([customerId])
+  @@index([vehicleId])
+  @@index([urgent])
+  @@index([urgentType])
+  @@index([serviceTypeId])
+  @@index([quoteId])
+  @@map("jobs")
+}
+
+model Reminder {
+  id          String   @id @default(cuid())
+  jobId       String
+  job         Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  type        String   // "customer" or "employee"
+  method      String   // "email", "sms", "app" (for future use)
+  daysBefore  Int      // Number of days before appointment (e.g., 1 for day before)
+  message     String?  // Custom message
+  sent        Boolean  @default(false)
+  sentAt      DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([jobId])
+  @@index([sent])
+  @@map("reminders")
+}
+
+model ServiceTemplate {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  duration    Int?     // Default duration in minutes
+  price       Float?   // Optional price
+  isActive    Boolean  @default(true)
+  serviceTypeId String? // Optional link to ServiceType category
+  serviceType ServiceType? @relation(fields: [serviceTypeId], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([name])
+  @@index([serviceTypeId])
+  @@map("service_templates")
+}
+
+model ServiceType {
+  id          String   @id @default(cuid())
+  name        String   // e.g., "Brakes", "Engine", "AC & Climate"
+  description String?  // Category description
+  icon        String?  // Icon name or emoji
+  color       String?  // Color code for UI
+  isActive    Boolean  @default(true)
+  serviceTemplates ServiceTemplate[]
+  jobs        Job[]
+  torqueSpecs TorqueSpec[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([name])
+  @@map("service_types")
+}
+
+model Part {
+  id              String   @id @default(cuid())
+  name            String   // e.g., "Brake Pads", "Oil Filter"
+  description     String?  // Optional description
+  partNumber      String?  // Manufacturer part number
+  vendor           String?  // e.g., "AutoZone", "NAPA", "O'Reilly"
+  quantity         Int      @default(0) // Current stock quantity
+  minQuantity      Int      @default(0) // Restock alert threshold
+  unit             String?  // e.g., "each", "box", "gallon"
+  price            Float?   // Current price per unit
+  location         String?  // Storage location (e.g., "Shelf A-3")
+  category         String?  // e.g., "Brakes", "Engine", "Fluids"
+  isActive         Boolean  @default(true)
+  purchaseHistory  PurchaseHistory[]
+  quoteLineItems   QuoteLineItem[]
+  invoiceLineItems InvoiceLineItem[]
+  partOrders       PartOrder[]
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([name])
+  @@index([category])
+  @@index([vendor])
+  @@map("parts")
+}
+
+model PurchaseHistory {
+  id          String   @id @default(cuid())
+  partId      String
+  part        Part     @relation(fields: [partId], references: [id], onDelete: Cascade)
+  quantity    Int      // Quantity purchased
+  unitPrice   Float?   // Price per unit at time of purchase
+  totalPrice  Float?   // Total price (quantity * unitPrice)
+  vendor      String?  // Vendor name
+  purchaseDate DateTime @default(now())
+  notes       String?  // Additional notes
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([partId])
+  @@index([purchaseDate])
+  @@map("purchase_history")
+}
+
+model Quote {
+  id              String   @id @default(cuid())
+  quoteNumber    String   // Unique quote number (e.g., "Q-2024-001")
+  customerId      String?
+  customer        Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  vehicleId       String?
+  vehicle         Vehicle?  @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
+  // Customer info (stored for reference even if customer is deleted)
+  customerName    String
+  customerPhone   String?
+  customerEmail   String?
+  // Vehicle info (stored for reference)
+  vehicleInfo     String   // e.g., "2020 Toyota Camry"
+  laborHours      Float    @default(0)
+  laborRate       Float    @default(0) // Rate per hour
+  laborTotal      Float    @default(0) // laborHours * laborRate
+  partsTotal      Float    @default(0) // Sum of all quote line items
+  subtotal        Float    @default(0) // laborTotal + partsTotal
+  taxRate         Float    @default(0) // Tax rate as decimal (e.g., 0.08 for 8%)
+  taxAmount       Float    @default(0) // subtotal * taxRate
+  total           Float    @default(0) // subtotal + taxAmount
+  status          String   @default("draft") // draft, sent, accepted, rejected, expired
+  notes           String?  // Additional notes
+  validUntil      DateTime? // Quote expiration date
+  lineItems       QuoteLineItem[]
+  jobs            Job[]    // Jobs created from this quote
+  messages        CustomerMessage[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([customerId])
+  @@index([vehicleId])
+  @@index([status])
+  @@index([quoteNumber])
+  @@map("quotes")
+}
+
+model Invoice {
+  id              String   @id @default(cuid())
+  invoiceNumber   String   // Unique invoice number (e.g., "INV-2024-001")
+  jobId           String?  @unique // Optional link to Job (one-to-one)
+  job             Job?     @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  customerId      String?
+  customer        Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  vehicleId       String?
+  vehicle         Vehicle?  @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
+  // Customer info (stored for reference)
+  customerName    String
+  customerPhone   String?
+  customerEmail   String?
+  customerAddress String?
+  // Vehicle info (stored for reference)
+  vehicleInfo     String
+  // Invoice details
+  laborHours      Float    @default(0)
+  laborRate       Float    @default(0)
+  laborTotal      Float    @default(0)
+  partsTotal      Float    @default(0)
+  shopSupplies    Float    @default(0) // Shop supplies fee
+  subtotal        Float    @default(0) // laborTotal + partsTotal + shopSupplies
+  discountAmount  Float    @default(0) // Discount amount (flat)
+  discountPercent Float    @default(0) // Discount percentage (0-100)
+  taxRate         Float    @default(0)
+  taxAmount       Float    @default(0) // Applied after discount
+  total           Float    @default(0) // subtotal - discountAmount - (subtotal * discountPercent/100) + taxAmount
+  amountPaid      Float    @default(0)
+  balanceDue      Float    @default(0) // total - amountPaid
+  status          String   @default("pending") // pending, partial, paid, overdue, cancelled
+  issueDate       DateTime @default(now())
+  dueDate         DateTime? // Payment due date
+  paidDate        DateTime? // When invoice was fully paid
+  paymentMethod   String?  // cash, check, card, transfer
+  notes           String?  // Additional notes
+  lineItems       InvoiceLineItem[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([customerId])
+  @@index([vehicleId])
+  @@index([jobId])
+  @@index([status])
+  @@index([invoiceNumber])
+  @@index([dueDate])
+  @@map("invoices")
+}
+
+model InvoiceLineItem {
+  id          String   @id @default(cuid())
+  invoiceId   String
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  partId      String?  // Optional reference to Part
+  part        Part?    @relation(fields: [partId], references: [id], onDelete: SetNull)
+  description String   // Item description
+  quantity    Int      @default(1)
+  unitPrice   Float    // Price per unit
+  total       Float    // quantity * unitPrice
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([invoiceId])
+  @@index([partId])
+  @@map("invoice_line_items")
+}
+
+model QuoteLineItem {
+  id          String   @id @default(cuid())
+  quoteId     String
+  quote       Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  partId      String?  // Optional reference to Part (if part exists in inventory)
+  part        Part?    @relation(fields: [partId], references: [id], onDelete: SetNull)
+  description String   // Part/service description
+  quantity    Int      @default(1)
+  unitPrice   Float    // Price per unit
+  total       Float    // quantity * unitPrice
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([quoteId])
+  @@index([partId])
+  @@map("quote_line_items")
+}
+
+model Note {
+  id          String   @id @default(cuid())
+  title       String   // Note title/description
+  content     String?  // Additional details
+  category    String   // parts-pickup, callback, follow-up, business-buy, tools, daily-task
+  priority    String   @default("normal") // low, normal, high, urgent
+  isCompleted Boolean  @default(false)
+  isDailyTask Boolean  @default(false) // Mark as daily checklist item
+  dueDate     DateTime? // Optional due date
+  relatedJobId String? // Optional link to a job
+  relatedCustomerId String? // Optional link to a customer
+  relatedPartId String? // Optional link to a part
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  completedAt DateTime? // When the note was completed
+
+  @@index([category])
+  @@index([isCompleted])
+  @@index([isDailyTask])
+  @@index([priority])
+  @@index([dueDate])
+  @@map("notes")
+}
+
+model PartOrder {
+  id          String   @id @default(cuid())
+  partName    String   // Part name/description
+  vendor      String   // AutoZone, O'Reilly, Napa, RockAuto
+  price       Float?   // Expected or quoted price
+  sku         String?  // SKU/Part number
+  deliveryETA DateTime? // Expected delivery date
+  jobId       String?  // Optional link to Job
+  job         Job?     @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  partId      String?  // Optional link to Part (inventory)
+  part        Part?    @relation(fields: [partId], references: [id], onDelete: SetNull)
+  status      String   @default("needed") // needed, ordered, arrived, installed
+  quantity    Int      @default(1) // Quantity to order
+  notes       String?  // Additional notes
+  orderedDate DateTime? // When the order was placed
+  arrivedDate DateTime? // When the order arrived
+  installedDate DateTime? // When the part was installed
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([vendor])
+  @@index([status])
+  @@index([jobId])
+  @@index([partId])
+  @@index([deliveryETA])
+  @@map("part_orders")
+}
+
+model Tool {
+  id                String    @id @default(cuid())
+  name              String    // Tool name (e.g., "Torque Wrench", "OBD Scanner")
+  toolType          String    // Type: wrench, scanner, impact-gun, torque-wrench, jack, other
+  brand             String?   // Brand name
+  model             String?   // Model number
+  serialNumber      String?   // Serial number
+  condition         String    @default("good") // excellent, good, fair, poor, needs-repair
+  purchaseDate      DateTime? // When the tool was purchased
+  purchasePrice     Float?    // Purchase price
+  assignedToId      String?   // Employee assigned to this tool
+  assignedTo        Employee? @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
+  calibrationDate  DateTime? // Last calibration date
+  calibrationDueDate DateTime? // Next calibration due date
+  calibrationInterval Int?    // Days between calibrations (e.g., 365 for annual)
+  location          String?   // Where the tool is stored (e.g., "Van 1", "Shop", "Toolbox A")
+  notes             String?   // Additional notes
+  isActive          Boolean   @default(true)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([toolType])
+  @@index([condition])
+  @@index([assignedToId])
+  @@index([calibrationDueDate])
+  @@index([isActive])
+  @@map("tools")
+}
+
+model VehicleMaintenanceHistory {
+  id              String    @id @default(cuid())
+  vehicleId       String
+  vehicle         Vehicle   @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  jobId           String?   // Optional link to Job if this maintenance was part of a job
+  job             Job?      @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  serviceType     String    // e.g., "Oil Change", "Brake Service", "Tire Rotation", "Transmission Service", etc.
+  serviceDate     DateTime  @default(now())
+  mileage         Int       // Mileage at time of service
+  description     String?   // Description of work performed
+  recommendations String?   // Future repairs/services recommended
+  photos          String?   // JSON array of photo URLs/paths
+  cost            Float?    // Cost of the service
+  technician      String?   // Technician/employee who performed the service
+  notes           String?   // Additional notes
+  nextServiceDate DateTime? // When next service is recommended
+  nextServiceMileage Int?    // Mileage for next service
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([vehicleId])
+  @@index([jobId])
+  @@index([serviceDate])
+  @@index([serviceType])
+  @@map("vehicle_maintenance_history")
+}
+
+model CustomerMessage {
+  id            String    @id @default(cuid())
+  customerId    String?   // Optional link to Customer
+  customer      Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  jobId         String?   // Optional link to Job
+  job           Job?      @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  quoteId       String?   // Optional link to Quote
+  quote         Quote?    @relation(fields: [quoteId], references: [id], onDelete: SetNull)
+  messageType   String    // quote, approval, note, follow-up, waiting-reply, general
+  subject       String?   // Subject or title
+  content       String    // Message content
+  direction     String    @default("outbound") // inbound, outbound
+  channel       String    @default("app") // sms, email, phone, facebook, in-person, app
+  status        String    @default("sent") // sent, delivered, read, waiting-reply, completed
+  isWaitingReply Boolean  @default(false) // Flag for "waiting on customer reply"
+  followUpDate  DateTime? // When to follow up
+  sentAt        DateTime  @default(now()) // When message was sent/created
+  createdBy     String?   // Employee/user who created it
+  notes         String?   // Additional internal notes
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([customerId])
+  @@index([jobId])
+  @@index([quoteId])
+  @@index([messageType])
+  @@index([status])
+  @@index([isWaitingReply])
+  @@index([followUpDate])
+  @@index([sentAt])
+  @@map("customer_messages")
+}
+
+model JobPhoto {
+  id          String   @id @default(cuid())
+  jobId       String
+  job         Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  filename    String   // Original filename
+  filepath    String   // Path to stored file (e.g., "/uploads/jobs/...")
+  photoType   String   @default("general") // vehicle-damage, old-parts, finished-work, diagnostic, general
+  description String?  // Optional description/caption
+  uploadedBy  String?  // Employee/user who uploaded
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([jobId])
+  @@index([photoType])
+  @@map("job_photos")
+}
+
+model JobTemplate {
+  id          String   @id @default(cuid())
+  name        String   // Template name (e.g., "Brake Job", "Tune-Up")
+  serviceType String   // Pre-filled service type
+  duration    Int?     // Default duration in minutes
+  price       Float?   // Default price
+  description String?  // Description/notes for this template
+  parts       String?  // Common parts needed (JSON array or comma-separated)
+  notes       String?  // Additional notes
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  torqueSpecs TorqueSpec[]
+  @@index([isActive])
+  @@index([name])
+  @@map("job_templates")
+}
+
+model TimeEntry {
+  id          String    @id @default(cuid())
+  employeeId  String
+  employee    Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  jobId       String?   // Optional link to Job for hours per job tracking
+  job         Job?      @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  date        DateTime  @default(now()) // Date of the work day
+  clockIn     DateTime  // Clock-in time
+  clockOut    DateTime? // Clock-out time (null if still clocked in)
+  breakStart  DateTime? // Break start time
+  breakEnd    DateTime? // Break end time
+  breakMinutes Int      @default(0) // Total break minutes for this entry
+  totalMinutes Int?     // Total worked minutes (calculated when clocked out)
+  notes       String?   // Optional notes about the shift
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([employeeId])
+  @@index([jobId])
+  @@index([date])
+  @@index([clockIn])
+  @@map("time_entries")
+}
+
+model MaintenanceReminder {
+  id              String    @id @default(cuid())
+  customerId      String
+  customer        Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  vehicleId       String
+  vehicle         Vehicle   @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  reminderType    String    // oil-change, inspection-6month, brake-check, custom
+  title           String    // Display title for the reminder
+  description     String?   // Description/details
+  dueDate         DateTime  // When the reminder is due
+  dueMileage      Int?      // Optional mileage-based reminder
+  currentMileage  Int?      // Current vehicle mileage (for tracking)
+  status          String    @default("pending") // pending, sent, completed, cancelled
+  lastSentAt      DateTime? // When reminder was last sent
+  completedAt     DateTime? // When the service was completed
+  relatedMaintenanceId String? // Link to VehicleMaintenanceHistory that triggered this
+  notes           String?   // Additional notes
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([customerId])
+  @@index([vehicleId])
+  @@index([reminderType])
+  @@index([status])
+  @@index([dueDate])
+  @@index([dueMileage])
+  @@map("maintenance_reminders")
+}
+
+model TorqueSpec {
+  id              String        @id @default(cuid())
+  componentName   String        // e.g., "Lug nuts", "Caliper bracket bolts", "Axle nut", "Head bolt"
+  torqueValue     Float         // Torque value (e.g., 100)
+  unit            String        @default("ft-lbs") // ft-lbs, Nm, in-lbs
+  sequence        String?       // For sequences like head bolts (e.g., "1-2-3-4-5-6")
+  notes           String?       // Additional notes
+  vehicleId       String?       // Optional: specific vehicle
+  vehicle         Vehicle?      @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  serviceTypeId   String?       // Optional: service type/category
+  serviceType     ServiceType?  @relation(fields: [serviceTypeId], references: [id], onDelete: Cascade)
+  jobTemplateId   String?       // Optional: job template
+  jobTemplate     JobTemplate?  @relation(fields: [jobTemplateId], references: [id], onDelete: Cascade)
+  isActive        Boolean       @default(true)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([vehicleId])
+  @@index([serviceTypeId])
+  @@index([jobTemplateId])
+  @@index([componentName])
+  @@index([isActive])
+  @@map("torque_specs")
+}
+
+model MaintenanceInterval {
+  id                String    @id @default(cuid())
+  vehicleId         String
+  vehicle           Vehicle   @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  intervalType      String    // oil-change, transmission, coolant, brake-fluid, differential
+  intervalMileage   Int?      // Interval in miles (e.g., 3000, 5000, 10000)
+  intervalMonths    Int?      // Interval in months (e.g., 3, 6, 12)
+  lastServiceDate   DateTime? // Date of last service
+  lastServiceMileage Int?     // Mileage at last service
+  nextDueDate       DateTime? // Auto-calculated next due date
+  nextDueMileage    Int?      // Auto-calculated next due mileage
+  isActive          Boolean   @default(true)
+  notes             String?   // Additional notes
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([vehicleId])
+  @@index([intervalType])
+  @@index([isActive])
+  @@index([nextDueDate])
+  @@index([nextDueMileage])
+  @@map("maintenance_intervals")
+}
+
+model InspectionChecklist {
+  id              String    @id @default(cuid())
+  vehicleId       String
+  vehicle         Vehicle   @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  jobId           String?   // Optional link to Job
+  job             Job?      @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  employeeId      String?   // Inspector/technician
+  employee        Employee? @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+  inspectionDate  DateTime  @default(now())
+  mileage         Int?      // Vehicle mileage at time of inspection
+  
+  // Inspection Items - Each category with status and notes
+  tiresStatus     String?   // ok, needs-attention, immediate-repair
+  tiresNotes      String?
+  brakesStatus    String?
+  brakesNotes     String?
+  suspensionStatus String?
+  suspensionNotes String?
+  steeringStatus  String?
+  steeringNotes   String?
+  fluidsStatus    String?
+  fluidsNotes     String?
+  beltsHosesStatus String?
+  beltsHosesNotes String?
+  batteryStatus   String?
+  batteryNotes    String?
+  
+  // Overall assessment
+  overallStatus   String?   // ok, needs-attention, immediate-repair
+  overallNotes   String?   // Summary/notes
+  recommendations String?  // Recommended repairs/services
+  
+  // Additional fields
+  customerSignature String? // Customer signature (text or image path)
+  inspectorSignature String? // Inspector signature
+  isComplete     Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([vehicleId])
+  @@index([jobId])
+  @@index([employeeId])
+  @@index([inspectionDate])
+  @@index([overallStatus])
+  @@map("inspection_checklists")
+}
+
+model DiagnosticJob {
+  id                  String    @id @default(cuid())
+  customerId          String
+  customer            Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  vehicleId           String
+  vehicle             Vehicle   @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  jobId               String?   // Optional link to related repair Job
+  job                 Job?      @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  employeeId          String?   // Technician who performed the diagnostic
+  employee            Employee? @relation(fields: [employeeId], references: [id], onDelete: SetNull)
+  diagnosticDate      DateTime  @default(now())
+  scanToolUsed        String?   // e.g., "Autel MaxiSys", "Snap-on", "Launch X431"
+  troubleCodes        String?   // Comma-separated trouble codes (P0171, P0300, etc.)
+  freezeFrameData     String?   // JSON string or text field for freeze frame data
+  liveDataNotes       String?   // Notes from live data readings
+  diagnosticConclusion String?  // What was found/diagnosed
+  recommendedRepairs  String?   // Recommended repairs based on diagnostic
+  status              String    @default("pending") // pending, in-progress, completed, cancelled
+  notes               String?   // Additional notes
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@index([customerId])
+  @@index([vehicleId])
+  @@index([jobId])
+  @@index([employeeId])
+  @@index([diagnosticDate])
+  @@index([status])
+  @@map("diagnostic_jobs")
+}
+
+
