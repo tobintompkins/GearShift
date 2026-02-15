@@ -102,8 +102,7 @@ export default function NewToolPage() {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-gray-50">
+  return (<div className="min-h-screen bg-gray-50">
       <Navigation />
       <main className="container mx-auto px-4 py-4 md:py-8 max-w-3xl">
         <div className="mb-4 md:mb-6">
