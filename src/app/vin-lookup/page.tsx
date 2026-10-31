@@ -26,6 +26,8 @@ interface VINDecodeResult {
   plantCountry: string | null;
   plantState: string | null;
   manufacturer: string | null;
+  /** Raw NHTSA response when present */
+  fullData?: unknown;
 }
 
 export default function VINLookupPage() {
@@ -352,7 +354,7 @@ export default function VINLookupPage() {
                 )}
               </div>
 
-              {showFullDetails && result.fullData && (
+              {showFullDetails && result.fullData != null && (
                 <div className="mt-6 pt-6 border-t border-gray-200">
                   <h3 className="text-lg font-semibold text-gray-900 mb-3">Full API Response</h3>
                   <pre className="bg-gray-50 p-4 rounded-md overflow-auto text-xs max-h-96">

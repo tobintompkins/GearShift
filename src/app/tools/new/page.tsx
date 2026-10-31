@@ -141,7 +141,7 @@ export default function NewToolPage() {
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g., OBD-II Scanner, 1/2\" Impact Wrench"
+                  placeholder='e.g., OBD-II Scanner, 1/2" Impact Wrench'
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>

@@ -445,7 +445,11 @@ export interface JobTemplate {
   updatedAt: Date;
 }
 
-export type ReminderType = "oil-change" | "inspection-6month" | "brake-check" | "custom";
+export type MaintenanceReminderType =
+  | "oil-change"
+  | "inspection-6month"
+  | "brake-check"
+  | "custom";
 export type ReminderStatus = "pending" | "sent" | "completed" | "cancelled";
 
 export interface MaintenanceReminder {
@@ -454,7 +458,7 @@ export interface MaintenanceReminder {
   customer?: Customer;
   vehicleId: string;
   vehicle?: Vehicle;
-  reminderType: ReminderType;
+  reminderType: MaintenanceReminderType;
   title: string;
   description: string | null;
   dueDate: Date;
@@ -472,7 +476,7 @@ export interface MaintenanceReminder {
 export interface MaintenanceReminderFormData {
   customerId: string;
   vehicleId: string;
-  reminderType: ReminderType;
+  reminderType: MaintenanceReminderType;
   title: string;
   description?: string;
   dueDate: string;

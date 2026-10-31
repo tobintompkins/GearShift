@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "db:seed:admin": "node scripts/seed-admin.cjs"
   },
   "dependencies": {
     "@prisma/client": "^5.7.0",
@@ -17,8 +18,8 @@
     "bcryptjs": "^3.0.3",
     "date-fns": "^2.30.0",
     "formidable": "^3.5.4",
-    "next": "14.0.0",
-    "next-auth": "^5.0.0-beta.30",
+    "next": "^14.2.22",
+    "next-auth": "^5.0.0-beta.31",
     "nodemailer": "^7.0.11",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -32,7 +33,7 @@
     "@types/react-dom": "^18.2.0",
     "autoprefixer": "^10.4.16",
     "eslint": "^8.55.0",
-    "eslint-config-next": "14.0.0",
+    "eslint-config-next": "^14.2.22",
     "postcss": "^8.4.32",
     "prisma": "^5.7.0",
     "tailwindcss": "^3.3.6",

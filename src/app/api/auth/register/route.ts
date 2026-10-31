@@ -49,13 +49,14 @@ export async function POST(request: NextRequest) {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create user
+    // Create user (always standard user; admins are created via seed / ops only)
     const user = await prisma.user.create({
       data: {
         username,
         password: hashedPassword,
         email: email || null,
         name: name || null,
+        role: 'user',
       },
       select: {
         id: true,

@@ -55,6 +55,7 @@ const authOptions = {
             name: user.name || user.username,
             email: user.email || undefined,
             username: user.username,
+            role: user.role,
           };
         } catch (error: any) {
           console.error('Authorization error:', error);
@@ -72,6 +73,7 @@ const authOptions = {
       if (user) {
         token.id = user.id;
         token.username = user.username;
+        token.role = user.role;
       }
       return token;
     },
@@ -79,6 +81,7 @@ const authOptions = {
       if (session.user) {
         session.user.id = token.id;
         session.user.username = token.username;
+        session.user.role = token.role as string;
       }
       return session;
     },

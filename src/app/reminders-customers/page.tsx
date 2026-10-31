@@ -3,17 +3,21 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Navigation from '@/components/Navigation';
-import { MaintenanceReminder, ReminderType, ReminderStatus } from '@/lib/types';
+import {
+  MaintenanceReminder,
+  MaintenanceReminderType,
+  ReminderStatus,
+} from '@/lib/types';
 import { format, isPast, isToday, addDays, differenceInDays } from 'date-fns';
 
-const reminderTypeLabels: Record<ReminderType, string> = {
+const reminderTypeLabels: Record<MaintenanceReminderType, string> = {
   'oil-change': '🛢️ Oil Change Due',
   'inspection-6month': '🔍 6-Month Inspection',
   'brake-check': '🛑 Brake Check Follow-up',
   'custom': '📋 Custom Reminder',
 };
 
-const reminderTypeColors: Record<ReminderType, string> = {
+const reminderTypeColors: Record<MaintenanceReminderType, string> = {
   'oil-change': 'bg-blue-100 text-blue-800 border-blue-300',
   'inspection-6month': 'bg-purple-100 text-purple-800 border-purple-300',
   'brake-check': 'bg-red-100 text-red-800 border-red-300',
@@ -369,10 +373,10 @@ export default function CustomerRemindersPage() {
                         </h3>
                         <span
                           className={`px-3 py-1 rounded-full text-xs font-medium border ${
-                            reminderTypeColors[reminder.reminderType as ReminderType]
+                            reminderTypeColors[reminder.reminderType as MaintenanceReminderType]
                           }`}
                         >
-                          {reminderTypeLabels[reminder.reminderType as ReminderType]}
+                          {reminderTypeLabels[reminder.reminderType as MaintenanceReminderType]}
                         </span>
                         <span
                           className={`px-3 py-1 rounded-full text-xs font-medium ${statusColors[reminder.status as ReminderStatus]}`}

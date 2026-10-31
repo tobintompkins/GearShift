@@ -20,7 +20,10 @@ export default async function JobDetailPage({ params }: { params: { id: string }
     notFound();
   }
 
-  const statusColors = {
+  const statusColors: Record<
+    'pending' | 'in-progress' | 'awaiting-parts' | 'completed' | 'cancelled',
+    string
+  > = {
     pending: 'bg-yellow-100 text-yellow-800',
     'in-progress': 'bg-blue-100 text-blue-800',
     'awaiting-parts': 'bg-orange-100 text-orange-800',
@@ -40,7 +43,12 @@ export default async function JobDetailPage({ params }: { params: { id: string }
               </h1>
               <p className="text-sm md:text-base text-gray-600">Job ID: {job.id}</p>
             </div>
-            <span className={`px-3 py-1 rounded-full text-xs md:text-sm font-medium ${statusColors[job.status]}`}>
+            <span
+              className={`px-3 py-1 rounded-full text-xs md:text-sm font-medium ${
+                statusColors[job.status as keyof typeof statusColors] ??
+                'bg-gray-100 text-gray-800'
+              }`}
+            >
               {job.status.replace('-', ' ')}
             </span>
           </div>

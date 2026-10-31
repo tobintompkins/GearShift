@@ -239,7 +239,12 @@ export default function Navigation() {
 
               {/* User Info & Logout - ALWAYS SHOW */}
               <div className="ml-2 flex items-center gap-2 border-l border-blue-400 pl-3">
-                <span className="text-sm text-blue-100">
+                <span className="text-sm text-blue-100 flex items-center gap-2 flex-wrap justify-end">
+                  {session?.user?.role === 'admin' && (
+                    <span className="text-[10px] uppercase tracking-wide bg-amber-500 text-white px-1.5 py-0.5 rounded font-semibold">
+                      Admin
+                    </span>
+                  )}
                   {session?.user?.name || session?.user?.username || 'User'}
                 </span>
                 <button
@@ -327,7 +332,12 @@ export default function Navigation() {
 
             {/* User Info & Logout - ALWAYS SHOW */}
             <div className="pt-2 border-t border-blue-400">
-              <div className="text-sm text-blue-100 px-4 py-2">
+              <div className="text-sm text-blue-100 px-4 py-2 flex items-center gap-2 flex-wrap">
+                {session?.user?.role === 'admin' && (
+                  <span className="text-[10px] uppercase tracking-wide bg-amber-500 text-white px-1.5 py-0.5 rounded font-semibold">
+                    Admin
+                  </span>
+                )}
                 {session?.user?.name || session?.user?.username || 'User'}
               </div>
               <button

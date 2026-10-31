@@ -13,6 +13,8 @@ model User {
   password        String   // Hashed password
   email           String?  @unique
   name            String?
+  /// Application role: "admin" (full access) or "user" (standard). Self-registration is always "user".
+  role            String   @default("user")
   isActive        Boolean  @default(true)
   resetToken      String?  // Password reset token
   resetTokenExpiry DateTime? // Token expiration
